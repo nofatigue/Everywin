@@ -194,8 +194,18 @@ namespace Everywin
                     GetWindowText(hWnd, builder, length + 1);
 
                     string title = builder.ToString();
+                    string path;
 
-                    string path = GetProcessPath(hWnd);
+                    try
+                    {
+                        path = GetProcessPath(hWnd);
+                    }
+                    
+                    catch (System.ComponentModel.Win32Exception)
+                    {
+                        // skip if we don't have priviliages for this window
+                        return true;
+                    }
 
                     open_windows.Add(new WindowEntry(title, hWnd, path));
 
