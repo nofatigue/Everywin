@@ -11,19 +11,75 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using BrightIdeasSoftware;
 using System.IO;
-using HWND = System.IntPtr;
+
 
 namespace Everywin
 {
+
     public partial class Form1 : Form
     {
+        private IntPtr NULL = (IntPtr)0;
+
         Windows windows;
+        KeyboardHook keyboard_hook = new KeyboardHook();
+        Shortcut reactivate_shortcut = new Shortcut((uint)Everywin.ModifierKeys.None, Keys.None);
 
         public Form1()
         {
             InitializeComponent();
+
+            keyboard_hook.KeyPressed +=
+            new EventHandler<KeyPressedEventArgs>(hook_KeyPressed);
+
         }
 
+        public Shortcut GetCurrentShortcut()
+        {
+            return reactivate_shortcut;
+        }
+
+        private void hide_from_user()
+        {
+            Hide();
+        }
+
+        private void jump_to_user()
+        {
+            this.Show();
+            this.Activate();
+            this.BringToFront();
+            this.Focus();
+            this.WindowState = FormWindowState.Normal;
+        }
+        public void hook_KeyPressed(object sender, KeyPressedEventArgs e)
+        {
+            jump_to_user();
+        }
+
+        public bool SetNewShortcut(Shortcut shortcut)
+        {
+            bool result = false;
+            this.keyboard_hook.UnregisterAllShortcuts();
+            result = this.keyboard_hook.RegisterHotKey((Everywin.ModifierKeys)shortcut.Modifiers, shortcut.Key);
+
+            if (!result)
+            {
+                reactivate_shortcut = new Shortcut();
+                return false;
+            }
+            else
+            {
+                reactivate_shortcut = shortcut;
+                return true;
+            }
+        }
+
+        public void RemoveShortcut()
+        {
+            this.keyboard_hook.UnregisterAllShortcuts();
+            reactivate_shortcut = new Shortcut();
+        }
+        
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -66,8 +122,10 @@ namespace Everywin
             if (e.KeyChar == (char)Keys.Return)
             {
                 windows.Enter();
+                e.Handled = true;
+                return;
             }
-
+            else
             if (e.KeyChar != (char)Keys.Up && e.KeyChar != (char)Keys.Down)
             {
                 search_bar.Focus();
@@ -82,7 +140,7 @@ namespace Everywin
 
         private void windows_olv_MouseClick(object sender, MouseEventArgs e)
         {
-            windows.Enter();
+            //windows.Enter();
         }
 
         private void search_bar_KeyPress(object sender, KeyPressEventArgs e)
@@ -111,207 +169,46 @@ namespace Everywin
                 windows_olv.SelectedIndex = 0;
             }
         }
-    }
 
-    public class Windows
-    {
-        private TextBox textbox;
-        private List<WindowEntry> windows_list;
-        private Point text_pos = new Point(0, 0);
-        private string current_search_text = "";
-        private ObjectListView olv;
-
-        public class WindowEntry
+        private void button1_Click(object sender, EventArgs e)
         {
-            private string title;
-            private IntPtr handle;
-            public bool was_drawn = false;
-            private string image;
-            private string process_path;
-
-            public WindowEntry(string window_title, IntPtr window_handle, string process_path)
-            {
-                title = window_title;
-                handle = window_handle;
-                this.process_path = process_path;
-                this.image = Path.GetFileName(process_path);
-
-            }
-
-            public string ProcessPath
-            {
-                get { return process_path; }
-            }
-
-            public string Image
-            {
-                get { return image; }
-            }
-
-            public string Title
-            {
-                get { return title; }
-            }
-
-            public IntPtr GetHandle()
-            {
-                return handle;
-            }
-
-            public override string ToString()
-            {
-                return title;
-            }
+            Form settings_form = new Form2(this);
+            settings_form.Show();
         }
 
-        public Windows(TextBox search_textbox, ObjectListView olv)
+        private void Form1_Enter(object sender, EventArgs e)
         {
-            this.textbox = search_textbox;
-            this.olv = olv;
+            //windows.Populate();
         }
 
-        public void Populate()
+        private void Form1_Activated(object sender, EventArgs e)
         {
-            windows_list = new List<WindowEntry>();
-            ImageList icons = new ImageList();
-
-            //Process[] processlist = Process.GetProcesses();
-
-            //foreach (Process process in processlist)
-            //{
-            //    if (!String.IsNullOrEmpty(process.MainWindowTitle))
-            //    {
-            //        windows_list.Add(new WindowEntry(process.MainWindowTitle, process.MainWindowHandle, process.MainModule.FileName));
-            //        Icon icon = Icon.ExtractAssociatedIcon(process.MainModule.FileName);
-            //        icons.Images.Add(process.MainModule.FileName, icon);
-            //        //Console.WriteLine("Process: {0} ID: {1} Window title: {2}", process.ProcessName, process.Id, process.MainWindowTitle);
-            //    }
-            //}
-
-            windows_list = OpenWindowGetter.GetOpenWindows();
-
-            foreach (WindowEntry win in windows_list)
-            {
-                Icon icon = Icon.ExtractAssociatedIcon(win.ProcessPath);
-                icons.Images.Add(win.ProcessPath, icon);
-            }
-
-            olv.SmallImageList = icons;
-            olv.SetObjects(windows_list);
+            windows.Populate();
         }
 
-        public void Search(string text)
+        private void Form1_Click(object sender, EventArgs e)
         {
-            //foreach (WindowEntry win in windows_list)
-            //{
-            //    win.match_search(text);
-            //}
-
-            current_search_text = text;
-
-            TextMatchFilter filter = TextMatchFilter.Contains(olv, current_search_text);
-
-            olv.ModelFilter = filter;
-
-            olv.SelectedIndex = 0;
-            
-            //// Text highlighting requires at least a default renderer
-            //if (olv.DefaultRenderer == null)
-            //    olv.DefaultRenderer = new HighlightTextRenderer(filter);
-
-            //olv.SetObjects(windows_list);
-            //UpdateInterface();
 
         }
 
-        [DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        public void Enter()
+        private void trayIcon_Click(object sender, EventArgs e)
         {
-            WindowEntry selected_win;
-
-            selected_win = (WindowEntry) olv.SelectedObject;
-
-            SetForegroundWindow(selected_win.GetHandle());
-
-            olv.FindForm().Close();
+            jump_to_user();
         }
 
-
-        /// <summary>Contains functionality to get all the open windows.</summary>
-        public static class OpenWindowGetter
+        private void Form1_Leave(object sender, EventArgs e)
         {
-            /// <summary>Returns a dictionary that contains the handle and title of all the open windows.</summary>
-            /// <returns>A dictionary that contains the handle and title of all the open windows.</returns>
-            public static List<WindowEntry> GetOpenWindows()
+
+        }
+
+        private void Form1_Deactivate(object sender, EventArgs e)
+        {
+            if (Form.ActiveForm == null)
             {
-                HWND shellWindow = GetShellWindow();
-                List<WindowEntry> open_windows = new List<WindowEntry>();
-    
-            EnumWindows(delegate (HWND hWnd, int lParam)
-            {
-                if (hWnd == shellWindow) return true;
-                if (!IsWindowVisible(hWnd)) return true;
-
-                int length = GetWindowTextLength(hWnd);
-                if (length == 0) return true;
-
-                StringBuilder builder = new StringBuilder(length);
-                GetWindowText(hWnd, builder, length + 1);
-
-                string title = builder.ToString();
-
-                string path = GetProcessPath(hWnd);
-
-                open_windows.Add(new WindowEntry(title, hWnd, path));
-
-                return true;
-
-            }, 0);
-
-                return open_windows;
+                hide_from_user();
             }
-
-            //WARN: Only for "Any CPU":
-            [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-            private static extern int GetWindowThreadProcessId(IntPtr handle, out uint processId);
-            public static string GetProcessPath(IntPtr hwnd)
-            {
-                uint pid = 0;
-                GetWindowThreadProcessId(hwnd, out pid);
-                if (hwnd != IntPtr.Zero)
-                {
-                    if (pid != 0)
-                    {
-                        var process = Process.GetProcessById((int)pid);
-                        if (process != null)
-                        {
-                            return process.MainModule.FileName.ToString();
-                        }
-                    }
-                }
-                return "";
-            }
-            private delegate bool EnumWindowsProc(HWND hWnd, int lParam);
-
-            [DllImport("USER32.DLL")]
-            private static extern bool EnumWindows(EnumWindowsProc enumFunc, int lParam);
-
-            [DllImport("USER32.DLL" ,CharSet = CharSet.Unicode)]
-            private static extern int GetWindowText(HWND hWnd, StringBuilder lpString, int nMaxCount);
-
-            [DllImport("USER32.DLL", CharSet = CharSet.Unicode)]
-            private static extern int GetWindowTextLength(HWND hWnd);
-
-            [DllImport("USER32.DLL")]
-            private static extern bool IsWindowVisible(HWND hWnd);
-
-            [DllImport("USER32.DLL")]
-            private static extern IntPtr GetShellWindow();
         }
     }
-
     
 
 }
