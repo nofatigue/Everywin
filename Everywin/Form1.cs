@@ -124,6 +124,7 @@ namespace Everywin
             if (e.KeyCode == Keys.Down)
             {
                 WindowsListbox.Focus();
+                WindowsListbox.SelectedIndex = 0;
             }
         }
 
@@ -184,7 +185,7 @@ namespace Everywin
                 }
                 else
                 {
-                    matching_title_part_index = title.IndexOf(to_match);
+                    matching_title_part_index = title.ToLower().IndexOf(to_match.ToLower());
                 }
                 
                 return matching_title_part_index;
@@ -272,6 +273,8 @@ namespace Everywin
             selected_win = (WindowEntry)listbox.SelectedItem;
 
             SetForegroundWindow(selected_win.GetHandle());
+
+            listbox.FindForm().Close();
         }
 
         private void windows_listbox_drawitem(object sender, DrawItemEventArgs e)
