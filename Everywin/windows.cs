@@ -13,6 +13,9 @@ using DWORD = System.UInt32;
 using LPDWORD = System.IntPtr;
 using BOOL = System.UInt32;
 using System.Diagnostics;
+using System.Threading;
+using System.Runtime.ConstrainedExecution;
+using System.Security;
 
 namespace Everywin
 {
@@ -182,6 +185,7 @@ namespace Everywin
                 HWND shellWindow = GetShellWindow();
                 List<WindowEntry> open_windows = new List<WindowEntry>();
 
+                
                 EnumWindows(delegate (HWND hWnd, int lParam)
                 {
                     if (hWnd == shellWindow) return true;
@@ -200,7 +204,7 @@ namespace Everywin
                     {
                         path = GetProcessPath(hWnd);
                     }
-                    
+
                     catch (System.ComponentModel.Win32Exception)
                     {
                         // skip if we don't have priviliages for this window
@@ -216,25 +220,57 @@ namespace Everywin
                 return open_windows;
             }
 
-            //WARN: Only for "Any CPU":
-            [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-            private static extern int GetWindowThreadProcessId(IntPtr handle, out uint processId);
+            // old implementation 
+            //public static string GetProcessPath(IntPtr hwnd)
+            //{
+            //    uint pid = 0;
+            //    GetWindowThreadProcessId(hwnd, out pid);
+            //    if (hwnd != IntPtr.Zero)
+            //    {
+            //        if (pid != 0)
+            //        {
+            //            var process = Process.GetProcessById((int)pid);
+            //            if (process != null)
+            //            {
+            //                return process.MainModule.FileName.ToString();
+            //            }
+            //        }
+            //    }
+            //    return "";
+            //}
+
+           
             public static string GetProcessPath(IntPtr hwnd)
             {
-                uint pid = 0;
+                DWORD pid = 0;
                 GetWindowThreadProcessId(hwnd, out pid);
-                if (hwnd != IntPtr.Zero)
+                HWND process_handle = (HWND)0;
+
+                try
                 {
-                    if (pid != 0)
+                    process_handle = OpenProcess(ProcessAccessFlags.QueryLimitedInformation, false, pid);
+                    if (process_handle == (HWND)0)
                     {
-                        var process = Process.GetProcessById((int)pid);
-                        if (process != null)
-                        {
-                            return process.MainModule.FileName.ToString();
-                        }
+                        return null;
+                    }
+
+                    var fileNameBuilder = new StringBuilder(1024);
+                    uint bufferLength = (uint)fileNameBuilder.Capacity + 1;
+
+                    return QueryFullProcessImageName(process_handle, 0, fileNameBuilder, ref bufferLength) ?
+                    fileNameBuilder.ToString() :
+                    null;
+
+
+                }                    
+                finally
+                {
+                    if (process_handle != (HWND)0)
+                    {
+                        CloseHandle(process_handle);
                     }
                 }
-                return "";
+                
             }
             private delegate bool EnumWindowsProc(HWND hWnd, int lParam);
 
@@ -252,6 +288,42 @@ namespace Everywin
 
             [DllImport("USER32.DLL")]
             private static extern IntPtr GetShellWindow();
+
+            //WARN: Only for "Any CPU":
+            [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+            private static extern int GetWindowThreadProcessId(IntPtr handle, out uint processId);
+            [DllImport("kernel32.dll", SetLastError = true)]
+            [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
+            [SuppressUnmanagedCodeSecurity]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            static extern bool CloseHandle(IntPtr hObject);
+
+            [DllImport("kernel32.dll", SetLastError = true)]
+            public static extern IntPtr OpenProcess(
+     ProcessAccessFlags processAccess,
+     bool bInheritHandle,
+     DWORD processId
+);[Flags]
+            public enum ProcessAccessFlags : uint
+            {
+                All = 0x001F0FFF,
+                Terminate = 0x00000001,
+                CreateThread = 0x00000002,
+                VirtualMemoryOperation = 0x00000008,
+                VirtualMemoryRead = 0x00000010,
+                VirtualMemoryWrite = 0x00000020,
+                DuplicateHandle = 0x00000040,
+                CreateProcess = 0x000000080,
+                SetQuota = 0x00000100,
+                SetInformation = 0x00000200,
+                QueryInformation = 0x00000400,
+                QueryLimitedInformation = 0x00001000,
+                Synchronize = 0x00100000
+            }
+
+            [DllImport("Kernel32.dll")]
+            private static extern bool QueryFullProcessImageName([In] IntPtr hProcess, [In] uint dwFlags, [Out] StringBuilder lpExeName, [In, Out] ref uint lpdwSize);
+
         }
     }
 }
