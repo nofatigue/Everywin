@@ -27,6 +27,17 @@ namespace Everywin
 
         }
 
+        protected override bool ProcessDialogKey(Keys keyData)
+        {
+            if (Form.ModifierKeys == Keys.None && keyData == Keys.Escape)
+            {
+                Close();
+                return true;
+            }
+
+            return base.ProcessDialogKey(keyData);
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
             if (recording)
@@ -37,6 +48,7 @@ namespace Everywin
 
                 bool shortcut_valid = false;
 
+                // user entered 
                 if (recorded_shortcut.is_valid() && shortcut_textbox.Text != "")
                 {
                     shortcut_valid = main_form.SetNewShortcut(recorded_shortcut);
@@ -58,10 +70,17 @@ namespace Everywin
             {
                 // start recording
                 recording = true;
+
+                // change button to "Set"
                 button1.Text = "Set";
+
+                // Ready textbox for user input
                 shortcut_textbox.Enabled = true;
                 shortcut_textbox.Text = "";
                 shortcut_textbox.Focus();
+
+                // Disable current shortcut
+                main_form.RemoveShortcut();
             }           
 
         }
@@ -73,6 +92,20 @@ namespace Everywin
 
         private void shortcut_textbox_KeyDown(object sender, KeyEventArgs e)
         {
+            if (e.KeyCode == Keys.Enter)
+            {
+                button1.PerformClick();
+                return;
+            }
+            else
+            if (e.KeyCode == Keys.Back)
+            {
+                shortcut_textbox.Text = "";
+                recorded_shortcut = new Shortcut();
+                return;
+            }
+            
+            
             uint modifiers = 0;
 
             modifiers |= (uint)(e.Control ? Everywin.ModifierKeys.Control : 0);

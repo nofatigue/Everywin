@@ -28,6 +28,8 @@ namespace Everywin
         {
             InitializeComponent();
 
+            windows = new Windows(search_bar, windows_olv);
+
             keyboard_hook.KeyPressed +=
             new EventHandler<KeyPressedEventArgs>(hook_KeyPressed);
 
@@ -56,6 +58,12 @@ namespace Everywin
             jump_to_user();
         }
 
+        private void open_settings_menu()
+        {
+            Form settings_form = new Form2(this);
+            settings_form.Show();
+        }
+
         public bool SetNewShortcut(Shortcut shortcut)
         {
             bool result = false;
@@ -80,27 +88,20 @@ namespace Everywin
             reactivate_shortcut = new Shortcut();
         }
         
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            windows = new Windows(search_bar, windows_olv);
-            windows.Populate();
-
-        }
-
         protected override bool ProcessDialogKey(Keys keyData)
         {
             if (Form.ModifierKeys == Keys.None && keyData == Keys.Escape)
             {
-                this.Close();
+                hide_from_user();
                 return true;
             }
+            else
+            if (Form.ModifierKeys == Keys.None && keyData == Keys.F1)
+            {
+                open_settings_menu();
+            }
+
             return base.ProcessDialogKey(keyData);
-        }
-
-        private void windows_olv_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
         }
 
         private void windows_olv_KeyDown(object sender, KeyEventArgs e)
@@ -138,16 +139,6 @@ namespace Everywin
             }
         }
 
-        private void windows_olv_MouseClick(object sender, MouseEventArgs e)
-        {
-            //windows.Enter();
-        }
-
-        private void search_bar_KeyPress(object sender, KeyPressEventArgs e)
-        {
-
-        }
-
         private void search_bar_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
@@ -170,35 +161,11 @@ namespace Everywin
             }
         }
 
-        private void button1_Click(object sender, EventArgs e)
-        {
-            Form settings_form = new Form2(this);
-            settings_form.Show();
-        }
-
-        private void Form1_Enter(object sender, EventArgs e)
-        {
-            //windows.Populate();
-        }
 
         private void Form1_Activated(object sender, EventArgs e)
         {
             windows.Populate();
-        }
-
-        private void Form1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void trayIcon_Click(object sender, EventArgs e)
-        {
-            jump_to_user();
-        }
-
-        private void Form1_Leave(object sender, EventArgs e)
-        {
-
+            search_bar.Focus();
         }
 
         private void Form1_Deactivate(object sender, EventArgs e)
@@ -208,6 +175,28 @@ namespace Everywin
                 hide_from_user();
             }
         }
+
+        private void contextMenuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+            if (e.ClickedItem.Name == "quit")
+            {
+                FindForm().Close();
+            }
+            else
+            if (e.ClickedItem.Name == "conf")
+            {
+                open_settings_menu();
+            }
+        }
+
+        private void trayIcon_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                jump_to_user();
+            }
+        }
+
     }
     
 

@@ -34,20 +34,22 @@
             this.windows_olv = new BrightIdeasSoftware.ObjectListView();
             this.colmun1 = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
             this.column2 = ((BrightIdeasSoftware.OLVColumn)(new BrightIdeasSoftware.OLVColumn()));
-            this.conf_button = new System.Windows.Forms.Button();
             this.trayIcon = new System.Windows.Forms.NotifyIcon(this.components);
+            this.context_menu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.quit = new System.Windows.Forms.ToolStripMenuItem();
+            this.conf = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.windows_olv)).BeginInit();
+            this.context_menu.SuspendLayout();
             this.SuspendLayout();
             // 
             // search_bar
             // 
             this.search_bar.Location = new System.Drawing.Point(12, 12);
             this.search_bar.Name = "search_bar";
-            this.search_bar.Size = new System.Drawing.Size(729, 20);
+            this.search_bar.Size = new System.Drawing.Size(776, 20);
             this.search_bar.TabIndex = 0;
             this.search_bar.TextChanged += new System.EventHandler(this.search_bar_TextChanged);
             this.search_bar.KeyDown += new System.Windows.Forms.KeyEventHandler(this.search_bar_KeyDown);
-            this.search_bar.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.search_bar_KeyPress);
             this.search_bar.KeyUp += new System.Windows.Forms.KeyEventHandler(this.search_bar_KeyUp);
             // 
             // windows_olv
@@ -68,10 +70,8 @@
             this.windows_olv.UseCompatibleStateImageBehavior = false;
             this.windows_olv.UseFiltering = true;
             this.windows_olv.View = System.Windows.Forms.View.Details;
-            this.windows_olv.SelectedIndexChanged += new System.EventHandler(this.windows_olv_SelectedIndexChanged);
             this.windows_olv.KeyDown += new System.Windows.Forms.KeyEventHandler(this.windows_olv_KeyDown);
             this.windows_olv.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.windows_olv_KeyPress);
-            this.windows_olv.MouseClick += new System.Windows.Forms.MouseEventHandler(this.windows_olv_MouseClick);
             // 
             // colmun1
             // 
@@ -86,41 +86,51 @@
             this.column2.FillsFreeSpace = true;
             this.column2.Text = "title";
             // 
-            // conf_button
-            // 
-            this.conf_button.Location = new System.Drawing.Point(747, 12);
-            this.conf_button.Name = "conf_button";
-            this.conf_button.Size = new System.Drawing.Size(40, 19);
-            this.conf_button.TabIndex = 3;
-            this.conf_button.Text = "conf";
-            this.conf_button.UseVisualStyleBackColor = true;
-            this.conf_button.Click += new System.EventHandler(this.button1_Click);
-            // 
             // trayIcon
             // 
+            this.trayIcon.ContextMenuStrip = this.context_menu;
             this.trayIcon.Icon = ((System.Drawing.Icon)(resources.GetObject("trayIcon.Icon")));
-            this.trayIcon.Text = "notifyIcon1";
+            this.trayIcon.Text = "Everywin";
             this.trayIcon.Visible = true;
-            this.trayIcon.Click += new System.EventHandler(this.trayIcon_Click);
+            this.trayIcon.MouseClick += new System.Windows.Forms.MouseEventHandler(this.trayIcon_MouseClick);
+            // 
+            // context_menu
+            // 
+            this.context_menu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.quit,
+            this.conf});
+            this.context_menu.Name = "context_menu";
+            this.context_menu.Size = new System.Drawing.Size(151, 48);
+            this.context_menu.Text = "Quit";
+            this.context_menu.ItemClicked += new System.Windows.Forms.ToolStripItemClickedEventHandler(this.contextMenuStrip1_ItemClicked);
+            // 
+            // quit
+            // 
+            this.quit.Name = "quit";
+            this.quit.Size = new System.Drawing.Size(150, 22);
+            this.quit.Text = "Quit";
+            // 
+            // conf
+            // 
+            this.conf.Name = "conf";
+            this.conf.Size = new System.Drawing.Size(150, 22);
+            this.conf.Text = "Configure (F1)";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 526);
-            this.Controls.Add(this.conf_button);
             this.Controls.Add(this.windows_olv);
             this.Controls.Add(this.search_bar);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
+            this.ShowInTaskbar = false;
             this.Text = "Everywin";
             this.Activated += new System.EventHandler(this.Form1_Activated);
             this.Deactivate += new System.EventHandler(this.Form1_Deactivate);
-            this.Load += new System.EventHandler(this.Form1_Load);
-            this.Click += new System.EventHandler(this.Form1_Click);
-            this.Enter += new System.EventHandler(this.Form1_Enter);
-            this.Leave += new System.EventHandler(this.Form1_Leave);
             ((System.ComponentModel.ISupportInitialize)(this.windows_olv)).EndInit();
+            this.context_menu.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -132,8 +142,10 @@
         private BrightIdeasSoftware.ObjectListView windows_olv;
         private BrightIdeasSoftware.OLVColumn colmun1;
         private BrightIdeasSoftware.OLVColumn column2;
-        private System.Windows.Forms.Button conf_button;
         private System.Windows.Forms.NotifyIcon trayIcon;
+        private System.Windows.Forms.ContextMenuStrip context_menu;
+        private System.Windows.Forms.ToolStripMenuItem quit;
+        private System.Windows.Forms.ToolStripMenuItem conf;
         //private System.Diagnostics.PerformanceCounter performanceCounter1;
     }
 }
