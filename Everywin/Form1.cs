@@ -11,7 +11,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using BrightIdeasSoftware;
 using System.IO;
-
+using System.Threading;
 
 namespace Everywin
 {
@@ -33,6 +33,10 @@ namespace Everywin
             keyboard_hook.KeyPressed +=
             new EventHandler<KeyPressedEventArgs>(hook_KeyPressed);
 
+            reactivate_shortcut = new Shortcut(Properties.Settings.Default.shortcut_modifiers,
+                (Keys)Properties.Settings.Default.shortcut_keys);
+
+            SetNewShortcut(reactivate_shortcut);
         }
 
         public Shortcut GetCurrentShortcut()
@@ -52,6 +56,8 @@ namespace Everywin
             this.BringToFront();
             this.Focus();
             this.WindowState = FormWindowState.Normal;
+
+            search_bar.SelectAll();
         }
         public void hook_KeyPressed(object sender, KeyPressedEventArgs e)
         {
@@ -78,6 +84,7 @@ namespace Everywin
             else
             {
                 reactivate_shortcut = shortcut;
+
                 return true;
             }
         }
@@ -118,6 +125,32 @@ namespace Everywin
             }
         }
 
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        static extern IntPtr SendMessage(IntPtr hWnd, UInt32 Msg, IntPtr wParam, IntPtr lParam);
+
+        const UInt32 WM_CLOSE = 0x0010;
+
+
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        public static extern IntPtr SendMessageTimeout(
+            IntPtr windowHandle,
+            uint Msg,
+            IntPtr wParam,
+            IntPtr lParam,
+            SendMessageTimeoutFlags flags,
+            uint timeout,
+            out IntPtr result);
+
+        [Flags]
+        public enum SendMessageTimeoutFlags : uint
+        {
+            SMTO_NORMAL = 0x0,
+            SMTO_BLOCK = 0x1,
+            SMTO_ABORTIFHUNG = 0x2,
+            SMTO_NOTIMEOUTIFNOTHUNG = 0x8,
+            SMTO_ERRORONEXIT = 0x20
+        }
+
         private void windows_olv_KeyPress(object sender, KeyPressEventArgs e)
         {
             if (e.KeyChar == (char)Keys.Return)
@@ -127,7 +160,11 @@ namespace Everywin
                 return;
             }
             else
-            if (e.KeyChar != (char)Keys.Up && e.KeyChar != (char)Keys.Down)
+            if (e.KeyChar == (char)Keys.Up && e.KeyChar == (char)Keys.Down)
+            {
+                // for selecting items..
+            }
+            else
             {
                 search_bar.Focus();
 
@@ -197,6 +234,41 @@ namespace Everywin
             }
         }
 
+        private void windows_olv_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
+        {
+            if (e.KeyValue == (char)Keys.Delete)
+            {
+                foreach (var item in windows_olv.SelectedObjects)
+                {
+                    //SendMessage(((Windows.WindowEntry)item).GetHandle(), WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+                    IntPtr lRes;
+                    SendMessageTimeout(((Windows.WindowEntry)item).GetHandle(), WM_CLOSE, IntPtr.Zero, IntPtr.Zero, SendMessageTimeoutFlags.SMTO_NORMAL, 10, out lRes);
+                }
+
+                Thread.Sleep(10);
+
+                windows.Populate();
+            }
+
+            
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Form1_Shown(object sender, EventArgs e)
+        {
+
+            Form settings_form = new Form2(this);
+            settings_form.Show();
+        }
+
+        private void windows_olv_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            windows.Enter();
+        }
     }
     
 

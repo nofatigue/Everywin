@@ -76,6 +76,10 @@ namespace Everywin
             this.olv = olv;
         }
 
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+        static extern IntPtr ExtractAssociatedIcon(IntPtr hInst, StringBuilder lpIconPath,
+   out ushort lpiIcon);
+
         public void Populate()
         {
             windows_list = new List<WindowEntry>();
@@ -90,12 +94,18 @@ namespace Everywin
 
             foreach (WindowEntry win in windows_list)
             {
-                Icon icon = Icon.ExtractAssociatedIcon(win.ProcessPath);
+                ushort uicon;
+                StringBuilder strB = new StringBuilder(260); // Allocate MAX_PATH chars
+                strB.Append(win.ProcessPath);
+                IntPtr handle = ExtractAssociatedIcon(IntPtr.Zero, strB, out uicon);
+                Icon icon = Icon.FromHandle(handle); ;
+
                 icons.Images.Add(win.ProcessPath, icon);
             }
 
             olv.SmallImageList = icons;
             olv.SetObjects(windows_list);
+            olv.Refresh();
         }
 
         public void Search(string text)
@@ -120,17 +130,12 @@ namespace Everywin
 );
         public void Enter()
         {
-            WindowEntry selected_win;
-
-            selected_win = (WindowEntry)olv.SelectedObject;
-
-            ActivateThisWindow(selected_win.GetHandle());
-
-            //this.olv.FindForm().WindowState = FormWindowState.Minimized;
-            //this.olv.FindForm().SendToBack();
+            foreach (WindowEntry selected_win in olv.SelectedObjects)
+            {
+                ActivateThisWindow(selected_win.GetHandle());
+            }
 
             this.olv.FindForm().Hide();
-            //this.olv.FindForm().Show();
             
         }
 
@@ -168,13 +173,126 @@ namespace Everywin
                 AttachThreadInput(currentThreadId, otherThreadId, 0);
             }
 
-            // SW_RESTORE
-            ShowWindow(handle, 9);
+            WINDOWPLACEMENT placement = GetPlacement(handle);
+
+            if (placement.showCmd.HasFlag(ShowWindowState.Minimized))
+            {
+              
+                if (placement.showCmd.HasFlag(ShowWindowState.Maximized))
+                {
+                    // using SW_RESTORE on maximized windows will change their size,
+                    // so use SW_SHOW instead (which seems always to work on maximized windows)
+                    ShowWindow(handle, (int)ShowWindowCommands.SW_SHOW);
+                }
+                else
+                {
+                    ShowWindow(handle, (int)ShowWindowCommands.SW_RESTORE);
+                }
+                
+            }
+
+            SetForegroundWindow(handle);
+
             return true;
 
-            //SetForegroundWindow(selected_win.GetHandle());
         }
 
+
+        private static WINDOWPLACEMENT GetPlacement(IntPtr hwnd)
+        {
+            WINDOWPLACEMENT placement = new WINDOWPLACEMENT();
+            placement.length = Marshal.SizeOf(placement);
+            GetWindowPlacement(hwnd, ref placement);
+            return placement;
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool GetWindowPlacement(
+            IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+
+        [Serializable]
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct WINDOWPLACEMENT
+        {
+            public int length;
+            public int flags;
+            public ShowWindowState showCmd;
+            public System.Drawing.Point ptMinPosition;
+            public System.Drawing.Point ptMaxPosition;
+            public System.Drawing.Rectangle rcNormalPosition;
+        }
+
+        internal enum ShowWindowState : int
+        {
+            Hide = 0,
+            Normal = 1,
+            Minimized = 2,
+            Maximized = 3,
+        }
+
+        public enum ShowWindowCommands : uint
+        {
+            /// <summary>
+            ///        Hides the window and activates another window.
+            /// </summary>
+            SW_HIDE = 0,
+
+            /// <summary>
+            ///        Activates and displays a window. If the window is minimized or maximized, the system restores it to its original size and position. An application should specify this flag when displaying the window for the first time.
+            /// </summary>
+            SW_SHOWNORMAL = 1,
+
+            /// <summary>
+            ///        Activates and displays a window. If the window is minimized or maximized, the system restores it to its original size and position. An application should specify this flag when displaying the window for the first time.
+            /// </summary>
+            SW_NORMAL = 1,
+
+            /// <summary>
+            ///        Activates the window and displays it as a minimized window.
+            /// </summary>
+            SW_SHOWMINIMIZED = 2,
+
+            /// <summary>
+            ///        Activates the window and displays it as a maximized window.
+            /// </summary>
+            SW_SHOWMAXIMIZED = 3,
+
+            /// <summary>
+            ///        Maximizes the specified window.
+            /// </summary>
+            SW_MAXIMIZE = 3,
+
+            /// <summary>
+            ///        Displays a window in its most recent size and position. This value is similar to <see cref="ShowWindowCommands.SW_SHOWNORMAL"/>, except the window is not activated.
+            /// </summary>
+            SW_SHOWNOACTIVATE = 4,
+
+            /// <summary>
+            ///        Activates the window and displays it in its current size and position.
+            /// </summary>
+            SW_SHOW = 5,
+
+            /// <summary>
+            ///        Minimizes the specified window and activates the next top-level window in the z-order.
+            /// </summary>
+            SW_MINIMIZE = 6,
+
+            /// <summary>
+            ///        Displays the window as a minimized window. This value is similar to <see cref="ShowWindowCommands.SW_SHOWMINIMIZED"/>, except the window is not activated.
+            /// </summary>
+            SW_SHOWMINNOACTIVE = 7,
+
+            /// <summary>
+            ///        Displays the window in its current size and position. This value is similar to <see cref="ShowWindowCommands.SW_SHOW"/>, except the window is not activated.
+            /// </summary>
+            SW_SHOWNA = 8,
+
+            /// <summary>
+            ///        Activates and displays the window. If the window is minimized or maximized, the system restores it to its original size and position. An application should specify this flag when restoring a minimized window.
+            /// </summary>
+            SW_RESTORE = 9
+        }
         /// <summary>Contains functionality to get all the open windows.</summary>
         public static class OpenWindowGetter
         {

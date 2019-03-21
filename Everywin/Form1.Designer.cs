@@ -56,6 +56,9 @@
             // 
             this.windows_olv.AllColumns.Add(this.colmun1);
             this.windows_olv.AllColumns.Add(this.column2);
+            this.windows_olv.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.windows_olv.CellEditUseWholeCell = false;
             this.windows_olv.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.colmun1,
@@ -72,6 +75,8 @@
             this.windows_olv.View = System.Windows.Forms.View.Details;
             this.windows_olv.KeyDown += new System.Windows.Forms.KeyEventHandler(this.windows_olv_KeyDown);
             this.windows_olv.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.windows_olv_KeyPress);
+            this.windows_olv.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.windows_olv_MouseDoubleClick);
+            this.windows_olv.PreviewKeyDown += new System.Windows.Forms.PreviewKeyDownEventHandler(this.windows_olv_PreviewKeyDown);
             // 
             // colmun1
             // 
@@ -129,6 +134,8 @@
             this.Text = "Everywin";
             this.Activated += new System.EventHandler(this.Form1_Activated);
             this.Deactivate += new System.EventHandler(this.Form1_Deactivate);
+            this.Load += new System.EventHandler(this.Form1_Load);
+            this.Shown += new System.EventHandler(this.Form1_Shown);
             ((System.ComponentModel.ISupportInitialize)(this.windows_olv)).EndInit();
             this.context_menu.ResumeLayout(false);
             this.ResumeLayout(false);

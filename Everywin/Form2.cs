@@ -54,7 +54,16 @@ namespace Everywin
                     shortcut_valid = main_form.SetNewShortcut(recorded_shortcut);
                 }
                 
-                if (!shortcut_valid)
+                if (shortcut_valid)
+                {
+                    // save shortcut
+                    Properties.Settings.Default.shortcut_keys = (int)recorded_shortcut.Key;
+                    Properties.Settings.Default.shortcut_modifiers = recorded_shortcut.Modifiers;
+
+                    Properties.Settings.Default.Save();
+
+                }
+                else 
                 {
                     // invalid shortcut
                     recorded_shortcut = new Shortcut();
