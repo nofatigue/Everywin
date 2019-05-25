@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using BrightIdeasSoftware;
 using System.IO;
 using System.Threading;
+using Everywin.Properties;
 
 namespace Everywin
 {
@@ -24,11 +25,13 @@ namespace Everywin
         KeyboardHook keyboard_hook = new KeyboardHook();
         Shortcut reactivate_shortcut = new Shortcut((uint)Everywin.ModifierKeys.None, Keys.None);
 
+        private bool _forceQuit = false;
+
         public Form1()
         {
             InitializeComponent();
 
-            windows = new Windows(search_bar, windows_olv);
+            windows = new Windows(search_bar.TextBox, windows_olv);
 
             keyboard_hook.KeyPressed +=
             new EventHandler<KeyPressedEventArgs>(hook_KeyPressed);
@@ -36,7 +39,10 @@ namespace Everywin
             reactivate_shortcut = new Shortcut(Properties.Settings.Default.shortcut_modifiers,
                 (Keys)Properties.Settings.Default.shortcut_keys);
 
-            SetNewShortcut(reactivate_shortcut);
+            if (Properties.Settings.Default.shortcut_modifiers != 0 || Properties.Settings.Default.shortcut_keys != 0)
+            {
+                SetNewShortcut(reactivate_shortcut);
+            }
         }
 
         public Shortcut GetCurrentShortcut()
@@ -44,9 +50,12 @@ namespace Everywin
             return reactivate_shortcut;
         }
 
-        private void hide_from_user()
+        private void hide_from_user(bool force = false)
         {
-            Hide();
+            if (force || Settings.Default.hide_on_focus_change)
+            {
+                Hide();
+            }
         }
 
         private void jump_to_user()
@@ -55,7 +64,6 @@ namespace Everywin
             this.Activate();
             this.BringToFront();
             this.Focus();
-            this.WindowState = FormWindowState.Normal;
 
             search_bar.SelectAll();
         }
@@ -99,7 +107,7 @@ namespace Everywin
         {
             if (Form.ModifierKeys == Keys.None && keyData == Keys.Escape)
             {
-                hide_from_user();
+                hide_from_user(true);
                 return true;
             }
             else
@@ -113,15 +121,16 @@ namespace Everywin
 
         private void windows_olv_KeyDown(object sender, KeyEventArgs e)
         {
-            //// CTRL + F
+            // CTRL + F
             if (e.KeyData == Keys.F && e.Control)
             {
                 // focus on search bar
                 search_bar.Focus();
-
-                // unselect listbox
-                //windows_olv.SelectObject(null);
-                //WindowsListbox.SetSelected(WindowsListbox.SelectedIndex, false);
+            }
+            else if (e.KeyData == Keys.Up && windows_olv.SelectedIndex == 0)
+            {
+                // Up arrow was clicked and first item is selected. Go up to the search bar
+                search_bar.Focus();
             }
         }
 
@@ -186,12 +195,12 @@ namespace Everywin
 
         private void search_bar_TextChanged(object sender, EventArgs e)
         {
-            windows.Search(((TextBox)sender).Text);
+            windows.Search(search_bar.Text);
         }
 
         private void search_bar_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.Down)
+            if (e.Modifiers == Keys.None && e.KeyCode == Keys.Down)
             {
                 windows_olv.Focus();
                 windows_olv.SelectedIndex = 0;
@@ -260,14 +269,62 @@ namespace Everywin
 
         private void Form1_Shown(object sender, EventArgs e)
         {
-
-            Form settings_form = new Form2(this);
-            settings_form.Show();
+            if (Properties.Settings.Default.shortcut_modifiers == 0 && Properties.Settings.Default.shortcut_keys == 0)
+            {
+                Form settings_form = new Form2(this);
+                settings_form.Show();
+            }
         }
 
         private void windows_olv_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             windows.Enter();
+        }
+
+        private void toggleGroupProcesses_CheckedChanged(object sender, EventArgs e)
+        {
+            windows_olv.ShowGroups = toggleGroupProcesses.Checked;
+            if (windows_olv.ShowGroups)
+            {
+                windows_olv.BuildGroups();
+            }
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (_forceQuit)
+            {
+                return;
+            }
+
+            DialogResult result = MessageBox.Show("Do you want to exit everywin or just minimize?\n\nClick Yes to exit\nClick No to minimize", "Question", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
+            switch (result)
+            {
+                case DialogResult.Cancel:
+                    e.Cancel = true;
+                    break;
+
+                case DialogResult.No:
+                    e.Cancel = true;
+                    hide_from_user(true);
+                    trayIcon.ShowBalloonTip(1000, "Everywin is still running...", "You can close it from the tray icon", ToolTipIcon.Info);
+                    break;
+
+                case DialogResult.Yes:
+                    e.Cancel = false;
+                    break;
+            }
+        }
+
+        private void configureF1ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            open_settings_menu();
+        }
+
+        private void quitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            _forceQuit = true;
+            this.Close();
         }
     }
     
