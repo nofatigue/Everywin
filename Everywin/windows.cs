@@ -16,6 +16,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Runtime.ConstrainedExecution;
 using System.Security;
+using Everywin.Properties;
 
 namespace Everywin
 {
@@ -29,44 +30,36 @@ namespace Everywin
 
         public class WindowEntry
         {
-            private string title;
-            private IntPtr handle;
-            public bool was_drawn = false;
-            private string image;
-            private string process_path;
+            private IntPtr _handle;
 
-            public WindowEntry(string window_title, IntPtr window_handle, string process_path)
+            public WindowEntry(int pid, string windowTitle, IntPtr windowHandle, string processPath, string ramUsage)
             {
-                title = window_title;
-                handle = window_handle;
-                this.process_path = process_path;
-                this.image = Path.GetFileName(process_path);
+                Pid = pid;
+                Title = windowTitle;
+                _handle = windowHandle;
+                ProcessPath = processPath;
+                Process = Path.GetFileName(processPath);
+                RamUsage = ramUsage;
 
             }
 
-            public string ProcessPath
-            {
-                get { return process_path; }
-            }
+            public string ProcessPath { get; }
 
-            public string Image
-            {
-                get { return image; }
-            }
+            public string Process { get; }
 
-            public string Title
-            {
-                get { return title; }
-            }
+            public int Pid { get; }
+            public string Title { get; }
 
             public IntPtr GetHandle()
             {
-                return handle;
+                return _handle;
             }
+
+            public string RamUsage { get; set; }
 
             public override string ToString()
             {
-                return title;
+                return Title;
             }
         }
 
@@ -77,8 +70,7 @@ namespace Everywin
         }
 
         [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
-        static extern IntPtr ExtractAssociatedIcon(IntPtr hInst, StringBuilder lpIconPath,
-   out ushort lpiIcon);
+        static extern IntPtr ExtractAssociatedIcon(IntPtr hInst, StringBuilder lpIconPath, out ushort lpiIcon);
 
         public void Populate()
         {
@@ -90,7 +82,7 @@ namespace Everywin
             string my_process_name = Process.GetCurrentProcess().ProcessName + ".exe";
 
             // filter out our windows
-            windows_list = windows_list.Where(win => win.Image != my_process_name).ToList();
+            windows_list = windows_list.Where(win => win.Process != my_process_name).ToList();
 
             foreach (WindowEntry win in windows_list)
             {
@@ -135,8 +127,11 @@ namespace Everywin
                 ActivateThisWindow(selected_win.GetHandle());
             }
 
-            this.olv.FindForm().Hide();
-            
+            if (Settings.Default.hide_on_focus_change)
+            {
+                this.olv.FindForm().Hide();
+            }
+
         }
 
         [DllImport("kernel32.dll")]
@@ -325,15 +320,41 @@ namespace Everywin
 
                     catch (System.ComponentModel.Win32Exception)
                     {
-                        // skip if we don't have priviliages for this window
+                        // skip if we don't have privileges for this window
                         return true;
                     }
 
-                    open_windows.Add(new WindowEntry(title, hWnd, path));
+                    string ramUsage = "N/A";
+
+                    GetWindowThreadProcessId(hWnd, out DWORD pid);
+                    try
+                    {
+                        var process = Process.GetProcessById((int) pid);
+                        process.Refresh();
+                        ramUsage = SizeFormatHelper.SizeSuffix(process.WorkingSet64, 2);
+                    }
+                    catch
+                    {
+
+                    }
+
+                    open_windows.Add(new WindowEntry((int) pid, title, hWnd, path, ramUsage));
 
                     return true;
 
                 }, 0);
+
+                foreach (IGrouping<int, WindowEntry> windowEntry in open_windows.GroupBy(entry => entry.Pid))
+                {
+                    // Mark windows that share PIDs
+                    if (windowEntry.Count() > 1)
+                    {
+                        foreach (var entry in windowEntry)
+                        {
+                            entry.RamUsage += " (Shared)";
+                        }
+                    }
+                }
 
                 return open_windows;
             }

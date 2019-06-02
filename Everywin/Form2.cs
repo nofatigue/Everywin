@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Everywin.Properties;
 
 namespace Everywin
 {
@@ -24,7 +25,7 @@ namespace Everywin
             this.main_form = main_form;
 
             shortcut_textbox.Text = main_form.GetCurrentShortcut().ToString();
-
+            checkHideOnFocusChange.Checked = Settings.Default.hide_on_focus_change;
         }
 
         protected override bool ProcessDialogKey(Keys keyData)
@@ -134,7 +135,11 @@ namespace Everywin
             shortcut_textbox.Text = recorded_shortcut.ToString();
         }
 
-
+        private void checkHideOnFocusChange_CheckedChanged(object sender, EventArgs e)
+        {
+            Settings.Default.hide_on_focus_change = checkHideOnFocusChange.Checked;
+            Settings.Default.Save();
+        }
     }
 
 }
