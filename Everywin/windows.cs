@@ -28,6 +28,9 @@ namespace Everywin
         private string current_search_text = "";
         private ObjectListView olv;
 
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern bool DestroyIcon(IntPtr hIcon);
+
         public class WindowEntry
         {
             private IntPtr _handle;
@@ -92,7 +95,13 @@ namespace Everywin
                 IntPtr handle = ExtractAssociatedIcon(IntPtr.Zero, strB, out uicon);
                 Icon icon = Icon.FromHandle(handle); ;
 
-                icons.Images.Add(win.ProcessPath, icon);
+                // clone icon to a Bitmap object so we can release the handle
+                Bitmap bitmap = icon.ToBitmap();
+
+                // need to close icon handle since we used low api
+                DestroyIcon(handle);
+
+                icons.Images.Add(win.ProcessPath, bitmap);
             }
 
             olv.SmallImageList = icons;
